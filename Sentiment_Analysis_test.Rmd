@@ -1,0 +1,62 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+s <- "food is good and bad"
+pos.words = scan('C:/Users/rahul/Documents/GitHub/Rahul_Gupta_MSBA_Kent/positive_words.txt', what = 'character', comment.char = ';')
+neg.words = scan('C:/Users/rahul/Documents/GitHub/Rahul_Gupta_MSBA_Kent/negative_words.txt', what = 'character', comment.char = ';')
+word.list <- str_split(s, '\\s+')
+words <- unlist(word.list)
+s1<- match(words, pos.words)
+s2<- match(words, neg.words)
+s1 <- !is.na(s1)
+s2 <- !is.na(s2)
+score<- sum(s1)- sum(s2)
+score
+
+```
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(twitteR)
+library(NLP)
+library(tm)
+library(purrr)
+library(ROAuth)
+library(bitops)
+library(RCurl)
+library(wordcloud)
+library(RColorBrewer)
+library(plyr)
+library(stringr)
+library(readr)
+library(dplyr)
+os <- read_file("C:/Users/rahul/Documents/GitHub/Rahul_Gupta_MSBA_Kent/Obama_speech.txt")
+
+pos.words = scan('C:/Users/rahul/Documents/GitHub/Rahul_Gupta_MSBA_Kent/positive_words.txt', what = 'character', comment.char = ';')
+neg.words = scan('C:/Users/rahul/Documents/GitHub/Rahul_Gupta_MSBA_Kent/negative_words.txt', what = 'character', comment.char = ';')
+os <- gsub('[[:punct:]]', "", os)   ## removing punctuations
+os <- gsub('[[:cntrl:]]', "", os)   ## removing control words
+os <- gsub('\\d+', "", os)          ## removing digits
+os <- tolower(os)                   ## making lower case
+word.list <- str_split(os, '\\s+')  ## splitting into words and making list
+words <- unlist(word.list)          ## list to be converted into vector
+pos.matches0 <- match(words, pos.words)
+neg.matches0 <- match(words, neg.words)
+pos.matches <- !is.na(pos.matches0)
+neg.matches <- !is.na(neg.matches0)
+score <- sum(pos.matches) - sum(neg.matches)
+score
+
+```
+
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
