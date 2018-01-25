@@ -1,0 +1,57 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(forecast)
+
+TravelData <- read.csv("Sept11Travel.csv")
+TravelData
+#View(TravelData)
+#head(TravelData)
+#head(TravelData$Air.RPM..000s.)
+
+
+```
+```{r}
+TravelDataAir.ts <-  ts(TravelData$Air.RPM..000s., 
+    start = c(1990, 1), end = c(2004, 4), freq = 12)
+plot(TravelDataAir.ts, xlab = "Time", ylab = "Actual airline revenue passenger miles ", ylim = c(29000000, 69000000))
+```
+```{r}
+TravelDataRail.ts <-  ts(TravelData$Rail.PM, 
+    start = c(1990, 1), end = c(2004, 4), freq = 12)
+plot(TravelDataRail.ts, xlab = "Time", ylab = " Rail passenger miles ")
+```
+
+```{r}
+TravelDataCar.ts <-  ts(TravelData$VMT..billions., 
+    start = c(1990, 1), end = c(2004, 4), freq = 12)
+plot(TravelDataCar.ts, xlab = "Time", ylab = " Vehicle miles traveled ", ylim = c(150, 265))
+```
+```{r}
+AirPre <- window(TravelDataAir.ts, start = c(1990, 1), end = c(2001,8))
+plot(AirPre, xlab= "Time", ylab = "Actual airline revenue passenger miles ")
+
+#TravelDataAirPre.lm <- forecast::tslm(TravelDataAirPre.ts ~ trend + I(trend^2))
+#plot(TravelDataAirPre.lm)
+```
+```{r}
+RailPre <- window(TravelDataRail.ts, start = c(1990, 1), end = c(2001,8))
+plot(RailPre, xlab= "Time", ylab = "Rail passenger miles ")
+```
+```{r}
+RailCar <- window(TravelDataCar.ts, start = c(1990, 1), end = c(2001,8))
+plot(RailCar, xlab= "Time", ylab = "Car passenger miles ")
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
