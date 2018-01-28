@@ -37,6 +37,7 @@ plot(TravelDataCar.ts, xlab = "Time", ylab = " Vehicle miles traveled ", ylim = 
 ```{r}
 AirPre <- window(TravelDataAir.ts, start = c(1990, 1), end = c(2001,8))
 plot(AirPre, xlab= "Time", ylab = "Actual airline revenue passenger miles ")
+plot(decompose(AirPre))
 
 #TravelDataAirPre.lm <- forecast::tslm(TravelDataAirPre.ts ~ trend + I(trend^2))
 #plot(TravelDataAirPre.lm)
@@ -44,10 +45,14 @@ plot(AirPre, xlab= "Time", ylab = "Actual airline revenue passenger miles ")
 ```{r}
 RailPre <- window(TravelDataRail.ts, start = c(1990, 1), end = c(2001,8))
 plot(RailPre, xlab= "Time", ylab = "Rail passenger miles ")
+plot(decompose(RailPre))
 ```
 ```{r}
-RailCar <- window(TravelDataCar.ts, start = c(1990, 1), end = c(2001,8))
-plot(RailCar, xlab= "Time", ylab = "Car passenger miles ")
+CarPre <- window(TravelDataCar.ts, start = c(1990, 1), end = c(2001,8))
+plot(CarPre, xlab= "Time", ylab = "Car passenger miles ")
+plot(decompose(CarPre))
+```
+```{r}
 ```
 
 Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
