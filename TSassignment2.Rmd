@@ -1,0 +1,143 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(forecast)
+
+TravelData <- read.csv("Sept11Travel.csv")
+TravelDataAir.ts <-  ts(TravelData$Air.RPM..000s., 
+    start = c(1990, 1), end = c(2004, 4), freq = 12)
+plot(TravelDataAir.ts, xlab = "Time", ylab = "Actual airline revenue passenger miles ", ylim = c(29000000, 69000000))
+TravelDataRail.ts <-  ts(TravelData$Rail.PM, 
+    start = c(1990, 1), end = c(2004, 4), freq = 12)
+plot(TravelDataRail.ts, xlab = "Time", ylab = " Rail passenger miles ")
+TravelDataCar.ts <-  ts(TravelData$VMT..billions., 
+    start = c(1990, 1), end = c(2004, 4), freq = 12)
+plot(TravelDataCar.ts, xlab = "Time", ylab = " Vehicle miles traveled ", ylim = c(150, 265))
+```
+```{r}
+AirPre <- window(TravelDataAir.ts, start = c(1990, 1), end = c(2001,8))
+plot(AirPre, xlab= "Time", ylab = "Actual airline revenue passenger miles ")
+plot(decompose(AirPre))
+```
+```{r}
+RailPre <- window(TravelDataRail.ts, start = c(1990, 1), end = c(2001,8))
+plot(RailPre, xlab= "Time", ylab = "Rail passenger miles ")
+plot(decompose(RailPre))
+```
+```{r}
+CarPre <- window(TravelDataCar.ts, start = c(1990, 1), end = c(2001,8))
+plot(CarPre, xlab= "Time", ylab = "Car passenger miles ")
+plot(decompose(CarPre))
+```
+```{r}
+# suppressing Seasonality for Air data
+require(graphics)
+#install.packages("xts")
+require(xts)
+library(scales)
+AirMultiplicative.ts=decompose(AirPre,"multiplicative")
+Adjusted_Air_multiplicative.ts <- AirPre-AirMultiplicative.ts$seasonal  #With Adjusted seasonality
+#PCP <- ts(Adjusted_Air.ts/1000000, start = c(1991,1), end =c(2001,09), frequency = 12)
+plot(Adjusted_Air_multiplicative.ts/1000000) 
+
+Decompose_Air_Additive.ts=decompose(AirPre,"additive")
+Adjusted_Air_Additive.ts <- AirPre-Decompose_Air_Additive.ts$seasonal  #With Adjusted seasonality
+#PCP <- ts(Adjusted_Air.ts/1000000, start = c(1991,1), end =c(2001,09), frequency = 12)
+plot(Adjusted_Air_Additive.ts/1000000) 
+```
+```{r}
+# Using  Decompose function to suppress Seasonality for Rail data
+Decompose_Rail.ts=decompose(RailPre,"additive")
+Adjusted_Rail.ts <- RailPre-Decompose_Rail.ts$seasonal  #With Adjusted seasonality
+plot(Adjusted_Rail.ts/1000000) 
+```
+```{r}
+# Using  Decompose function to suppress Seasonality for car data
+Decompose_car.ts=decompose(CarPre,"additive")
+Adjusted_car.ts <- CarPre-Decompose_car.ts$seasonal  #With Adjusted seasonality
+plot(Adjusted_car.ts) 
+```
+```{r}
+# linear regression model to the time series
+#Adding trend or season or Trend+season
+AirMulti.lm <- tslm(Adjusted_Air_multiplicative.ts ~ trend)
+summary(AirMulti.lm)
+```
+```{r}
+AirMulti.lm.season <- tslm(Adjusted_Air_multiplicative.ts ~ season)
+summary(AirMulti.lm.season)
+
+AirMulti.lm.seasonAndTrend <- tslm(Adjusted_Air_multiplicative.ts ~ trend+season)
+summary(AirMulti.lm.seasonAndTrend)
+plot(AirMulti.lm.seasonAndTrend$residuals)
+AirMulti.lm.seasonAndTrend$residuals
+```
+```{r}
+Acf(AirMulti.lm.seasonAndTrend$residuals, lag.max = 12, main="")
+#partial autocorrelation
+Pacf(AirMulti.lm.seasonAndTrend$residuals, lag.max = 12, main="")
+```
+```{r}
+# adding linear trend for Air,rail and Vehicle
+Air.lm <- tslm(Adjusted_Air_Additive.ts ~ trend)
+summary(Air.lm)
+```
+```{r}
+Rail.lm <- tslm(Adjusted_Rail.ts ~ trend)
+summary(Rail.lm)
+```
+```{r}
+Car.lm <- tslm(Adjusted_car.ts ~ trend)
+summary(Car.lm)
+
+```
+```{r}
+# fitting Quadratic trend for Rail
+Rail.lm <- tslm(Adjusted_Rail.ts ~ trend + I(trend^2))
+summary(Rail.lm)
+
+```
+```{r}
+#  generate the naive and seasonal naive forecasts
+Airnaive.pred <- forecast::naive(Adjusted_Air_Additive.ts, h = 36)
+Airsnaive.pred <- forecast::snaive(Adjusted_Air_Additive.ts, h = 36)
+Airnaive.pred
+Airsnaive.pred
+
+Railnaive.pred <- forecast::naive(Adjusted_Rail.ts, h = 36)
+Railsnaive.pred <- forecast::snaive(Adjusted_Rail.ts, h = 36)
+Railnaive.pred
+Railsnaive.pred
+
+Carnaive.pred <- forecast::naive(Adjusted_Vehicle.ts, h = 36)
+Carsnaive.pred <- forecast::snaive(Adjusted_Vehicle.ts, h = 36)
+Carnaive.pred
+Carsnaive.pred
+```
+```{r}
+# plot forecasts and actuals in the training and validation sets
+plot(TravelDataAir.ts,  ylab = "Air Travel", xlab = "Time", bty = "l", xaxt = "n", xlim = c(1990,2005), main = "") 
+axis(1, at = seq(1990, 2005, 1), labels = format(seq(1990, 2005, 1)))
+lines(Airnaive.pred$mean, lwd = 2, col = "blue", lty = 1)
+lines(Airsnaive.pred$mean, lwd = 2, col = "red", lty = 1)
+lines(c(2004.70 - 3, 2004.70 - 3), c(0, 700999930)) 
+lines(c(2004.25, 2004.25), c(0, 700999930))
+text(1994.25, 69103630, "Training")
+text(2002.75, 69999990, "Validation")
+text(2004.90, 69103630, "Future")
+arrows(2001, 67000000, 1990, 67000000, code = 3, length = 0.1, lwd = 1,angle = 30)
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
