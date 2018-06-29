@@ -1,0 +1,332 @@
+---
+title: "Untitled"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(readxl)
+library(sqldf)
+library(proto)
+library(gsubfn)
+library(RSQLite)
+library(moments)
+library(ISLR)
+library(corrplot)
+library(readxl)
+library(dplyr)
+library(caret)
+library(forecast)
+library(tseries)
+library(lattice)
+library(ggplot2)
+library(lubridate)
+require(ggplot2)
+
+
+
+DashboardR <- read_excel("DashboardR.xlsx")
+View(DashboardR)
+class(DashboardR$CHANNEL_CODE)
+x <- DashboardR
+x$CHANNEL_CODE[x$CHANNEL_CODE == "ePF"] <- 1
+x$CHANNEL_CODE[x$CHANNEL_CODE == "PS"] <- 2
+x$CHANNEL_CODE <- as.numeric(x$CHANNEL_CODE)
+class(x$CHANNEL_CODE)
+summary(x)
+x$CHANNEL_CODE <- as.numeric(as.character(x$CHANNEL_CODE))
+View(x)
+
+
+unique(DashboardR$REQUESTOR_ID)
+colnames(DashboardR)
+
+install.packages("shiny")
+install.packages("dplyr")
+install.packages("devtools")
+
+library("devtools")
+install_github("ropensci/plotly")
+getwd()
+sqldf("select count(distinct(modality_id)) from DashboardR")
+unique(DashboardR$PRODUCT_CATEGORY_ID)
+skewness(DashboardR$MARGIN)
+hist(DashboardR$MARGIN, n=10)
+
+summary(x)
+anova(DashboardR$MARGIN)
+levels(DashboardR$MODALITY_ID)
+pairs(DashboardR)
+pairs(x,8:11)
+corrplot(pairs(x[,2:11]))
+corrplot(cor(DashboardR[,6:11]), method = "color")
+
+# channel code$epf = 1 and ps = 2
+DashboardR$CHANNEL_CODE[DashboardR$CHANNEL_CODE=="epf"] <- 1
+DashboardR$CHANNEL_CODE[DashboardR$CHANNEL_CODE=="ps" ] <- 2
+DashboardR$CHANNEL_CODE <- as.numeric(DashboardR$CHANNEL_CODE)
+colMeans(is.na(DashboardR$CHANNEL_CODE))
+#DashboardR1 <- subset(DashboardR,DashboardR$ORDERS==1)
+#View(DashboardR1)
+
+```
+
+
+
+```{r}
+#Time series 
+t <- x
+t <- as.data.frame(t)
+class(t)
+class(t$TRANSACTION_DATE)
+head(t)
+t$TRANSACTION_DATE <- as.Date(t$TRANSACTION_DATE, format = "%yyyy%mm%dd")
+t$TRANSACTION_DATE <- format(t$TRANSACTION_DATE, format = "%d/%m/%y")
+t$TRANSACTION_DATE <- as.factor(as.character(t$TRANSACTION_DATE))
+View(t)
+summary(t)
+tMargin <- ts(t$MARGIN, start= c(2018,1), end = c(2018,5), freq = 12)
+tMargin
+plot(tMargin.ts, xlab = "Time", ylab = "Margin", ylim= c(-11000, 11000))
+tst <- ts(temPlot$Monthly_MARGIN, start = c(2018,1), end = c(2018,5), frequency = 12)
+tst
+plot(tst, xlab = "Month", ylab = "Margin", ylim= c(0, 300000))
+
+# start = c(2018,1), end = c(2018,5),
+```
+
+
+
+```{r}
+dm <- read.table(text = Lines, header = TRUE)
+dm$Date <- as.Date(dm$Date, "%m/%d/%Y")
+plot(MARGIN ~ TRANSACTION_DATE, t, xaxt = "n", type = "l")
+axis(1, t$TRANSACTION_DATE, format(t$TRANSACTION_DATE, "%b %d"), cex.axis = .7)
+```
+
+### Chart C
+
+```{r}
+View(t)
+t$TRANSACTION_DATE <- as.Date( t$TRANSACTION_DATE, '%y/%m/%d')
+#View(t$TRANSACTION_DATE)t1
+t1 <- t
+tem <- t1 %>% group_by(month= floor_date(t1$TRANSACTION_DATE, "month"))
+View(tem)
+t1$month <- tem$month
+colnames(t1)
+tem1 <- tem %>% group_by(month= floor_date(tem$TRANSACTION_DATE, "month")) %>% summarise(Monthly_MARGIN = sum(MARGIN))
+
+t1 %>% group_by(month= floor_date(TRANSACTION_DATE, "month")) %>% summarise(Monthly_MARGIN = sum(MARGIN))
+temPlot <- t1 %>% group_by(month= floor_date(TRANSACTION_DATE, "month")) %>% summarise(Monthly_MARGIN = sum(MARGIN))
+
+colnames(t1)
+
+ggplot( data = t1, aes( TRANSACTION_DATE, MARGIN )) + geom_smooth(method = "lm") + geom_line()
+View(temPlot)
+ggplot( data = temPlot, aes( month, Monthly_MARGIN )) + geom_smooth(method = "lm") + geom_line() + geom_point()
+
+temPlot %>% filter(temPlot$month == "2018-01-01") %>% ggplot( data = temPlot, aes( month, Monthly_MARGIN )) + geom_smooth(method = "lm") + geom_line() + geom_point()
+
+
+
+```
+```{r}
+require(plyr)
+library(scales)
+
+# ---------------------------------------------------------------------------------------------
+# Formatting functions for ggplot  graph axis
+# ---------------------------------------------------------------------------------------------
+
+#' Human Numbers: Format numbers so they're legible for humans
+#' Use this in ggplot for labels where you might use the comma or percent functions from the 
+#' Scales package.
+#' 
+#' Checks whether numbers are positive or negative. 
+#' Allows up to 1 significant figure
+#' sapply used for element-wise application of the humanity function as a vector may include
+#' numbers where billions, millions or thousands are appropriate.
+#'
+#' @return a character vector the same length as the input vector
+#' @param x a numeric vector to format, 
+#' @smbl a symbol you'd like to prefix your numbers by e.g. "$"
+#' @signif = the number of significant places you want the function to return
+#' @examples
+#' human_numbers(c(1000000 , 1500000, 10000000000))
+#' human_numbers(c(1.200000e+05, -2.154660e+05, 2.387790e+05, 4.343500e+04 ,5.648675e+12), "$")
+#' ggplot2 + scale_y_continuous(labels = human_numbers)
+#' ggplot2 + scale_x_continuous(labels = human_numbers)
+#' ggplot2 + scale_x_continuous(labels = human_gbp)
+
+human_numbers <- function(x = NULL, smbl ="", signif = 1){
+  humanity <- function(y){
+
+    if (!is.na(y)){
+        tn <- round(abs(y) / 1e12, signif)
+       b <- round(abs(y) / 1e9, signif)
+       m <- round(abs(y) / 1e6, signif)
+       k <- round(abs(y) / 1e3, signif)
+
+      if ( y >= 0 ){
+        y_is_positive <- ""
+      } else {
+        y_is_positive <- "-"
+      }
+
+      if ( k < 1 ) {
+        paste0( y_is_positive, smbl, round(abs(y), signif ))
+        } else if ( m < 1){
+        paste0 (y_is_positive, smbl,  k , "k")
+      } else if (b < 1){
+        paste0 (y_is_positive, smbl, m ,"m")
+      }else if(tn < 1){
+          paste0 (y_is_positive, smbl, b ,"bn")
+      } else {
+        paste0 (y_is_positive, smbl,  comma(tn), "tn")
+      }
+    } else if (is.na(y) | is.null(y)){
+        "-"
+    }
+  }
+
+  sapply(x,humanity)
+}
+
+#' Human versions of large currency numbers - extensible via smbl
+
+human_gbp   <- function(x){human_numbers(x, smbl = "£")}
+human_usd   <- function(x){human_numbers(x, smbl = "$")}
+human_euro  <- function(x){human_numbers(x, smbl = "€")} 
+human_num   <- function(x){human_numbers(x, smbl = "")} 
+```
+
+
+
+
+
+
+
+-------------------------------------------------------------------------------------------------------
+
+
+
+
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+library(shiny)
+library(ggplot2)
+library(rsconnect)
+
+
+ui <- fluidPage(
+  
+  titlePanel(title=h4("Margin", align="center")),
+  checkboxGroupInput("checkGroup", 
+                              h3("Select Month(s)"), 
+                              choices = list("Jan" = 1, 
+                                             "Feb" = 2, 
+                                             "March" = 3,
+                                             "April" = 4,
+                                             "May" = 5),
+                              selected = 1))
+  mainPanel(
+    
+    plotOutput(outputId = "p1")
+  )
+  
+server <- function(input,output, session) {
+  currentdata <- reactive(
+    {}
+  )
+    output$p1<- renderPlot({
+    ggplot(data = temPlot, aes( month, Monthly_MARGIN )) + geom_smooth(method = "lm") + geom_line() + geom_point()
+    })
+  
+  
+}
+shinyApp(ui, server)
+```
+```{r}
+ggplot( data = temPlot, aes( month, Monthly_MARGIN )) + geom_smooth(method = "lm") + geom_line() + geom_point()
+
+```
+```{r}
+library(shiny)
+library(datasets)
+
+# Define UI
+ui <- fluidPage(
+  selectInput('data', 'Choose dataset', c('cars', 'faithful')),
+  numericInput('obs', 'How many obs to include?', 5),
+  plotOutput('p1'),
+  plotOutput('p2')
+)
+
+# Server logic
+server <- function(input, output, session) {
+
+  currentData <- reactive({
+    data <- switch(input$data,
+              "cars" = cars, "faithful" = faithful)
+    head(data, n = input$obs)
+  })
+
+  output$p1 <- renderPlot({
+    plot(currentData())
+  })
+
+  output$p2 <- renderPlot({
+    plot(currentData())
+  })
+}
+
+# Complete app with UI and server components
+shinyApp(ui, server)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+```{r}
+library(shiny)
+library(ggplot2)
+
+num<-c(1,2,3,4,5)
+let<-c("A","B","C","D","E")
+date<-c("2015-5-1","2015-6-1","2015-7-1","2015-8-1","2015-9-1")
+df <- data.frame(num,let,date)
+
+ui <- fluidPage(
+  titlePanel(title=h4("Races", align="center")),
+  sidebarPanel( 
+    sliderInput("num", "Number:",min = 0, max = 5,step=1,value=c(1,2))),
+  mainPanel(plotOutput("plot2")))
+
+server <- function(input,output){
+
+  dat <- reactive({
+    test <- df[df$num %in% seq(from=min(input$num),to=max(input$num),by=1),]
+    print(test)
+    test
+  })
+
+  output$plot2<-renderPlot({
+    ggplot(dat(),aes(x=date,y=num))+geom_point(colour='red')},height = 400,width = 600)}
+shinyApp(ui, server)
+```
+
+
